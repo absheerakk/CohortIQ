@@ -1,0 +1,19 @@
+[User]
+  ↓ types question in Streamlit UI
+[Streamlit App]
+  ↓ embeds question
+[Sentence Transformers model] (cached, loaded once)
+  ↓ query embedding
+[Chroma persistent collection] (pre-indexed from 14 markdown lesson files)
+  ↓ top 3 chunks + metadata (day number)
+[Scope Checker]
+  ↓ evaluates if the question is relevant to the retrieved context
+[Streamlit App]
+  ↓ builds final prompt with context + question
+[Gemini API] (system prompt: answer only from context, cite the exact day)
+  ↓ answer text
+[Streamlit App]
+  ↓ displays answer + sources, grouped by day
+
+Indexing pipeline (runs once, separately):
+[14 markdown files] → [chunker] → [embedder] → [Chroma collection on disk]

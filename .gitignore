@@ -8,6 +8,7 @@ wheels/
 chat_log.txt
 *.log
 .idea/
+chroma_db/
 
 # Virtual environments
 .venv
