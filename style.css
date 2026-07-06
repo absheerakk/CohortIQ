@@ -1,0 +1,240 @@
+/* Import Inter Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Apply base styling to app */
+.stApp {
+    background-color: #0B1020 !important;
+    color: #FFFFFF !important;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Hide default Streamlit padding and headers */
+header, footer {visibility: hidden;}
+[data-testid="stHeader"] {background: rgba(0,0,0,0) !important;}
+
+/* Sidebar Background & Border */
+[data-testid="stSidebar"] {
+    background-color: #0C1222 !important;
+    border-right: 1px solid rgba(255,255,255,0.05) !important;
+    padding-top: 2rem;
+}
+
+/* Force removal of underlines on all links in the sidebar */
+[data-testid="stSidebar"] a {
+    text-decoration: none !important;
+}
+
+/* Hide divider lines in sidebar */
+[data-testid="stSidebar"] hr {
+    display: none !important;
+}
+
+/* Sidebar Navigation Items */
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    margin: 6px 0px;
+    border-radius: 12px;
+    color: #A7B1C2;
+    text-decoration: none !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.nav-item:link, .nav-item:visited, .nav-item:hover, .nav-item:active {
+    text-decoration: none !important;
+}
+.nav-item.active {
+    background: linear-gradient(90deg, #7C3AED, #D946EF) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0px 4px 15px rgba(124, 58, 237, 0.4);
+    text-decoration: none !important;
+}
+.nav-item:hover:not(.active) {
+    background-color: #111827;
+    color: #FFFFFF;
+    text-decoration: none !important;
+}
+
+/* Sidebar Card Panels */
+.sidebar-card {
+    background-color: #111827;
+    border: 1px solid #2A3555;
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 15px;
+}
+.status-badge {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #22C55E;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* Giant Metric inside Sidebar */
+.giant-metric {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: -webkit-linear-gradient(90deg, #7C3AED, #D946EF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 5px 0px;
+}
+
+/* Main Page Headers */
+.main-title {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    font-size: 3.5rem; /* 56px */
+    font-weight: 800;
+    margin-top: 1rem;
+    margin-bottom: 5px;
+}
+.main-title span {
+    background: -webkit-linear-gradient(135deg, #A855F7 0%, #3B82F6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.subtitle {
+    text-align: center;
+    color: #A7B1C2;
+    font-size: 1.25rem; /* 20px */
+    font-weight: 500;
+    margin-bottom: 2.5rem;
+}
+
+/* Force Equal Height Columns in Streamlit Grid Layout */
+[data-testid="stHorizontalBlock"] {
+    align-items: stretch !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stColumn"] {
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stColumn"] > div {
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stColumn"] .element-container {
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+[data-testid="stHorizontalBlock"] [data-testid="stColumn"] .stMarkdown {
+    flex-grow: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Feature Grid Cards - Stretches dynamically to match the tallest column */
+.feature-card {
+    background-color: #141B2D;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 20px;
+    padding: 24px;
+    flex-grow: 1 !important;
+    min-height: 200px !important; /* Clean baseline height */
+    box-sizing: border-box !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.04);
+}
+.feature-card:hover {
+    transform: translateY(-5px);
+    border-color: #8B5CF6;
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.08);
+}
+.feature-icon-container {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+/* Override Streamlit's native st.container(border=True) to style it as a card */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background-color: #141B2D !important;
+    border: 1px solid rgba(255,255,255,0.05) !important;
+    border-radius: 20px !important;
+    padding: 28px !important;
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.04) !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Input Styling matching prompt */
+.stTextInput>div>div>input {
+    background-color: #161E34 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #2D3659 !important;
+    border-radius: 18px !important;
+    padding: 14px 20px !important;
+    font-size: 1rem !important;
+}
+.stTextInput>div>div>input:focus {
+    border-color: #8B5CF6 !important;
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.35) !important;
+}
+
+/* Gradient Button */
+.stButton>button {
+    background: linear-gradient(90deg, #8B5CF6, #EC4899) !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border: none !important;
+    border-radius: 16px !important;
+    padding: 14px 28px !important;
+    cursor: pointer;
+    width: 100%;
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.25);
+    transition: all 0.2s ease;
+}
+.stButton>button:hover {
+    transform: scale(1.03);
+    background: linear-gradient(90deg, #A855F7, #6366F1) !important;
+    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
+}
+
+/* Custom Sidebar Danger Button */
+.wipe-btn>button {
+    background: #111827 !important;
+    border: 1px solid #EF4444 !important;
+    color: #EF4444 !important;
+    box-shadow: none !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+}
+.wipe-btn>button:hover {
+    background: #EF4444 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    transform: none !important;
+}
+
+/* Styled Markdown answers */
+.answer-text {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: #A7B1C2;
+}
+
+/* Citations custom card */
+.citation-card {
+    background-color: #111827;
+    border: 1px solid #2A3555;
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    text-align: center;
+}
