@@ -89,7 +89,7 @@ streamlit run app.py
 This will automatically launch the browser at `http://localhost:8501`.
 
 ## Live Demo
-*Live demo link coming soon*
+You can try the live application here: [cohort-iq.streamlit.app](https://cohort-iq.streamlit.app/)
 
 ## Known Limitations
 
