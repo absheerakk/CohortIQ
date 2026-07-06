@@ -8,15 +8,28 @@
     font-family: 'Inter', sans-serif;
 }
 
-/* Hide default Streamlit padding and headers */
-header, footer {visibility: hidden;}
-[data-testid="stHeader"] {background: rgba(0,0,0,0) !important;}
+/* Hide default footer and keep header transparent (essential for sidebar toggle button) */
+footer {
+    display: none !important;
+}
+[data-testid="stHeader"] {
+    background: rgba(0,0,0,0) !important;
+}
+.block-container, [data-testid="stAppViewBlockContainer"] {
+    padding-top: 1rem !important;
+    padding-bottom: 2rem !important;
+}
 
-/* Sidebar Background & Border */
+/* Sidebar Background & Border and collapse top padding */
 [data-testid="stSidebar"] {
     background-color: #0C1222 !important;
-    border-right: 1px solid rgba(255,255,255,0.05) !important;
-    padding-top: 2rem;
+    border-right: 1px solid #2A3555 !important;
+}
+[data-testid="stSidebarUserContent"] {
+    padding-top: 1.5rem !important;
+}
+[data-testid="stSidebar"] .block-container {
+    padding-top: 1.5rem !important;
 }
 
 /* Force removal of underlines on all links in the sidebar */
@@ -36,23 +49,24 @@ header, footer {visibility: hidden;}
     padding: 12px 16px;
     margin: 6px 0px;
     border-radius: 12px;
-    color: #A7B1C2;
+    color: #A7B1C2 !important; /* Force grey-white color */
     text-decoration: none !important;
     font-weight: 500;
     transition: all 0.2s ease;
 }
-.nav-item:link, .nav-item:visited, .nav-item:hover, .nav-item:active {
+.nav-item:link, .nav-item:visited {
+    color: #A7B1C2 !important; /* Overrides default browser link colors */
     text-decoration: none !important;
 }
 .nav-item.active {
     background: linear-gradient(90deg, #7C3AED, #D946EF) !important;
-    color: #FFFFFF !important;
+    color: #FFFFFF !important; /* White text when active */
     box-shadow: 0px 4px 15px rgba(124, 58, 237, 0.4);
     text-decoration: none !important;
 }
 .nav-item:hover:not(.active) {
     background-color: #111827;
-    color: #FFFFFF;
+    color: #FFFFFF !important; /* White text on hover */
     text-decoration: none !important;
 }
 
@@ -92,7 +106,7 @@ header, footer {visibility: hidden;}
     gap: 15px;
     font-size: 3.5rem; /* 56px */
     font-weight: 800;
-    margin-top: 1rem;
+    margin-top: 0.5rem !important; /* Reset margin so it is no longer cut off */
     margin-bottom: 5px;
 }
 .main-title span {
@@ -116,34 +130,26 @@ header, footer {visibility: hidden;}
     display: flex !important;
     flex-direction: column !important;
 }
-[data-testid="stHorizontalBlock"] [data-testid="stColumn"] > div {
-    flex-grow: 1 !important;
+/* Stretches all nested wrapper divs recursively to propagate column height down */
+[data-testid="stHorizontalBlock"] [data-testid="stColumn"] div {
     display: flex !important;
     flex-direction: column !important;
-}
-[data-testid="stHorizontalBlock"] [data-testid="stColumn"] .element-container {
     flex-grow: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-[data-testid="stHorizontalBlock"] [data-testid="stColumn"] .stMarkdown {
-    flex-grow: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
 }
 
 /* Feature Grid Cards - Stretches dynamically to match the tallest column */
 .feature-card {
     background-color: #141B2D;
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid #2A3555;
     border-radius: 20px;
     padding: 24px;
     flex-grow: 1 !important;
-    min-height: 200px !important; /* Clean baseline height */
+    min-height: 180px !important;
     box-sizing: border-box !important;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
+    display: flex !important;
+    flex-direction: column !important; /* Stack vertically */
+    justify-content: flex-start !important;
+    align-items: flex-start !important; /* Align items left */
     transition: all 0.3s ease;
     box-shadow: 0 0 30px rgba(168, 85, 247, 0.04);
 }
@@ -152,58 +158,107 @@ header, footer {visibility: hidden;}
     border-color: #8B5CF6;
     box-shadow: 0 0 30px rgba(168, 85, 247, 0.08);
 }
+/* Stop recursive stretching inside the card itself for text elements */
+.feature-card p, .feature-card h4 {
+    display: block !important;
+    flex-grow: 0 !important;
+}
+.feature-card h4 {
+    margin: 8px 0px 6px 0px !important;
+    color: #FFFFFF !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+}
+.feature-card p {
+    margin: 0px !important;
+    font-size: 0.8rem !important;
+    color: #A7B1C2 !important;
+    line-height: 1.4 !important;
+}
 .feature-icon-container {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 12px;
-    font-size: 1.2rem;
+    display: flex !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    width: 44px !important; /* Larger circular base */
+    height: 44px !important;
+    border-radius: 50% !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-bottom: 12px !important; /* Space below icon */
 }
 
 /* Override Streamlit's native st.container(border=True) to style it as a card */
-[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #141B2D !important;
-    border: 1px solid rgba(255,255,255,0.05) !important;
-    border-radius: 20px !important;
-    padding: 28px !important;
-    box-shadow: 0 0 30px rgba(168, 85, 247, 0.04) !important;
-    margin-bottom: 1.5rem !important;
+[data-testid="stVerticalBlockBorderWrapper"], [data-testid="stBorder"] {
+    background-color: #141B2D !important; /* Matches feature cards (#141B2D) */
+    border: 1px solid rgba(255, 255, 255, 0.06) !important; /* Thin border */
+    border-radius: 18px !important; /* 18px border radius */
+    padding: 16px 24px 22px 24px !important; /* Reduced top padding, spacious bottom */
+    box-shadow: 0 12px 30px rgba(0,0,0,.25) !important; /* Soft shadow */
+    margin-bottom: 0.85rem !important; /* Reduced vertical space between cards */
 }
 
-/* Input Styling matching prompt */
-.stTextInput>div>div>input {
-    background-color: #161E34 !important;
-    color: #FFFFFF !important;
-    border: 1px solid #2D3659 !important;
-    border-radius: 18px !important;
-    padding: 14px 20px !important;
-    font-size: 1rem !important;
+/* Input Styling matching prompt (Unified selector to resolve Streamlit specificity) */
+[data-testid="stTextInputRootElement"], [data-testid="stTextInput"] > div {
+    border: none !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
 }
-.stTextInput>div>div>input:focus {
-    border-color: #8B5CF6 !important;
-    box-shadow: 0 0 10px rgba(139, 92, 246, 0.35) !important;
+[data-testid="stTextInput"] input {
+    background-color: #1A2238 !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 14px !important;
+    height: 52px !important; /* Height: 52px */
+    padding: 0px 20px 0px 58px !important; /* Pushes placeholder apart from sparkles icon */
+    font-size: 15px !important;
+    font-weight: 400 !important;
+    font-family: 'Inter', sans-serif !important;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23A855F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5z"/><path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-position: 18px center !important; /* Aligned vertically, 18px left */
+    background-size: 18px !important; /* Size 18px */
+}
+[data-testid="stTextInput"] input::placeholder {
+    color: #7C879C !important; /* Placeholder: 15px, 400, #7C879C */
+    font-size: 15px !important;
+    font-weight: 400 !important;
+}
+[data-testid="stTextInput"] input:focus {
+    border-color: #8B5CF6 !important; /* On focus: #8B5CF6 */
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.25) !important; /* Subtle purple glow */
 }
 
 /* Gradient Button */
 .stButton>button {
-    background: linear-gradient(90deg, #8B5CF6, #EC4899) !important;
+    background: linear-gradient(90deg, #C026D3, #3B82F6) !important; /* Gradient: from #C026D3 to #3B82F6 */
     color: #FFFFFF !important;
-    font-weight: 700 !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 600 !important; /* weight 600 */
     border: none !important;
-    border-radius: 16px !important;
-    padding: 14px 28px !important;
+    border-radius: 14px !important; /* Border radius: 14px */
+    height: 52px !important; /* Height: 52px */
+    width: 120px !important; /* Reduced button width */
+    padding: 0px 12px !important; /* Reduced horizontal padding */
     cursor: pointer;
-    width: 100%;
-    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.25);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important; /* Soft shadow only */
     transition: all 0.2s ease;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 2px !important; /* Decreased gap between icon and text */
+}
+/* Reset margin/display on Streamlit inner text elements to prevent padding gaps */
+.stButton>button p, .stButton>button div {
+    margin: 0 !important;
+    padding: 0 !important;
+    display: inline-block !important;
 }
 .stButton>button:hover {
-    transform: scale(1.03);
-    background: linear-gradient(90deg, #A855F7, #6366F1) !important;
-    box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
+    transform: scale(1.02) !important; /* Subtle scale hover */
+    background: linear-gradient(90deg, #D946EF, #4F8FF7) !important;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.25) !important;
 }
 
 /* Custom Sidebar Danger Button */
@@ -238,3 +293,69 @@ header, footer {visibility: hidden;}
     margin-bottom: 10px;
     text-align: center;
 }
+
+/* Sidebar expand/collapse button highlights (makes them bright and visible against dark theme) */
+[data-testid="stSidebarCollapsedControl"] button,
+[data-testid="stSidebarHeader"] button,
+[data-testid="stSidebar"] button[aria-label="Close sidebar"] {
+    color: #FFFFFF !important;
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border: 1px solid #2A3555 !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.05) !important;
+}
+[data-testid="stSidebarCollapsedControl"] button:hover,
+[data-testid="stSidebarHeader"] button:hover,
+[data-testid="stSidebar"] button[aria-label="Close sidebar"]:hover {
+    color: #A855F7 !important;
+    background-color: rgba(168, 85, 247, 0.15) !important;
+    border-color: #8B5CF6 !important;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.25) !important;
+    transform: scale(1.05);
+}
+
+
+
+/* Inject Lucide send (paper plane) icon into the main action button */
+.stButton>button::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>') !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+}
+
+/* Exclude the sidebar wipe database button from getting the paper plane icon */
+.wipe-btn>button::before {
+    display: none !important;
+}
+
+/* Redesigned Label & Helper Text */
+.ask-label {
+    font-size: 15px !important; /* 15px */
+    font-weight: 400 !important; /* weight 400 (not bold) */
+    color: #F3F4F6 !important; /* #F3F4F6 */
+    margin-bottom: 12px !important; /* 12px between title and input */
+    font-family: 'Inter', sans-serif !important;
+}
+.ask-helper {
+    font-size: 13px !important; /* 13px */
+    font-weight: 400 !important; /* weight 400 */
+    color: #6B7280 !important; /* #6B7280 */
+    margin-top: 0px !important; /* Pulls suggestions closer to override Streamlit block gap */
+    padding-bottom:14px !important; /* Spacious gap below try and card border */
+    font-family: 'Inter', sans-serif !important;
+}
+.helper-query {
+    color: #9CA3AF !important;
+    transition: color 0.2s ease;
+}
+.helper-query:hover {
+    color: #A855F7 !important; /* Premium purple glow on hover */
+}
+
+
+

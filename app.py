@@ -1,4 +1,5 @@
 import os
+import base64
 import streamlit as st
 import google.generativeai as genai
 from core import (
@@ -6,6 +7,9 @@ from core import (
     get_chroma_client,
     index_documents,
     query_pipeline,
+    is_injection_attempt,
+    contains_pii,
+    PII_MAP,
     SYSTEM_PROMPT
 )
 
@@ -27,19 +31,35 @@ if os.path.exists(style_css_path):
 else:
     st.warning("⚠️ stylesheet not found. Please verify style.css is in the app directory.")
 
+# Base64 Logo Resolver to display local images inside markdown
+logo_path = os.path.join(script_dir, "CohortIQ-logo.png")
+if os.path.exists(logo_path):
+    with open(logo_path, "rb") as f:
+        logo_base64 = base64.b64encode(f.read()).decode()
+    logo_html_sidebar = f'<img src="data:image/png;base64,{logo_base64}" style="width: 80px; height: 80px; object-fit: contain; margin-left: -20px; margin-right: -15px; margin-top: -10px; margin-bottom: -10px;" />'
+else:
+    # SVG Fallback
+    logo_html_sidebar = '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-icon lucide-brain"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>'
+
+# Main page title logo (always use the custom gradient vector brain logo)
+logo_html_title = '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-icon lucide-brain"><defs><linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#A855F7"/><stop offset="100%" stop-color="#3B82F6"/></linearGradient></defs><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>'
+
+
 # Initialize session state flags
 if 'busy' not in st.session_state:
     st.session_state.busy = False
 if 'last_query' not in st.session_state:
     st.session_state.last_query = ""
+if 'response_cache' not in st.session_state:
+    st.session_state.response_cache = {}
 
 # 3. Sidebar UI
 with st.sidebar:
-    # Sidebar Header with custom Brain SVG
-    st.markdown("""
-        <div style='display: flex; align-items: center; gap: 12px; margin-bottom: 2rem;'>
-            <div style='color: #A855F7; display: flex; align-items: center; justify-content: center;'>
-                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-icon lucide-brain"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>
+    # Sidebar Header with Base64 Logo
+    st.markdown(f"""
+        <div style='display: flex; align-items: center; gap: 12px; margin-bottom: 2rem; margin-top: -2.5rem;'>
+            <div style='display: flex; align-items: center; justify-content: center;'>
+                {logo_html_sidebar}
             </div>
             <div>
                 <div style='font-weight: 800; font-size: 1.4rem; color: #FFFFFF; line-height: 1.1;'>Cohort IQ</div>
@@ -50,11 +70,15 @@ with st.sidebar:
     
     # Sidebar Navigation Items
     st.markdown("""
-        <a href='#' class='nav-item active'>🏠 &nbsp; Home</a>
-        <a href='#' class='nav-item'>💬 &nbsp; Ask Question</a>
+        <a href='#' class='nav-item active'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 10px;" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Home
+        </a>
+        <a href='#' class='nav-item'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 10px;" class="lucide lucide-message-circle-icon lucide-message-circle"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/></svg>
+            Ask Question
+        </a>
         <a href='#' class='nav-item'>📚 &nbsp; Browse Sources</a>
-        <a href='#' class='nav-item'>📈 &nbsp; Analytics</a>
-        <a href='#' class='nav-item'>⚙️ &nbsp; Settings</a>
     """, unsafe_allow_html=True)
     
     # Load DB status details
@@ -125,29 +149,15 @@ with st.sidebar:
                 st.session_state.busy = False
     st.markdown("</div>", unsafe_allow_html=True)
 
-# 4. Main Page Header with Gradient Brain Logo SVG
-st.markdown("""
+# 4. Main Page Header with Base64 Logo
+st.markdown(f"""
     <div class='main-title'>
-        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="url(#logo-grad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-icon lucide-brain">
-            <defs>
-                <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#A855F7"/>
-                    <stop offset="100%" stop-color="#3B82F6"/>
-                </linearGradient>
-            </defs>
-            <path d="M12 18V5"/>
-            <path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/>
-            <path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/>
-            <path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/>
-            <path d="M18 18a4 4 0 0 0 2-7.464"/>
-            <path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/>
-            <path d="M6 18a4 4 0 0 1-2-7.464"/>
-            <path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/>
-        </svg>
+        {logo_html_title}
         <span>Cohort IQ</span>
     </div>
 """, unsafe_allow_html=True)
 st.markdown("<div class='subtitle'>✦ Your Intelligent AI Coursework Companion & Study Sage ✦</div>", unsafe_allow_html=True)
+
 
 # 5. Features Grid
 col_f1, col_f2, col_f3, col_f4 = st.columns(4)
@@ -155,18 +165,22 @@ col_f1, col_f2, col_f3, col_f4 = st.columns(4)
 with col_f1:
     st.markdown("""
         <div class='feature-card'>
-            <div class='feature-icon-container' style='background-color: rgba(59, 130, 246, 0.15); color: #3B82F6;'>🔍</div>
-            <h4 style='margin: 5px 0px; color: #FFFFFF;'>Smart Search</h4>
-            <p style='font-size: 0.8rem; color: #A7B1C2; margin-bottom: 0px;'>AI-powered semantic search across your coursework.</p>
+            <div class='feature-icon-container' style='background-color: rgba(59, 130, 246, 0.15); color: #3B82F6;'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </div>
+            <h4>Smart Search</h4>
+            <p>AI-powered semantic search across your coursework</p>
         </div>
     """, unsafe_allow_html=True)
 
 with col_f2:
     st.markdown("""
         <div class='feature-card'>
-            <div class='feature-icon-container' style='background-color: rgba(168, 85, 247, 0.15); color: #A855F7;'>📄</div>
-            <h4 style='margin: 5px 0px; color: #FFFFFF;'>Source Citations</h4>
-            <p style='font-size: 0.8rem; color: #A7B1C2; margin-bottom: 0px;'>Get answers with exact file references.</p>
+            <div class='feature-icon-container' style='background-color: rgba(168, 85, 247, 0.15); color: #A855F7;'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text-icon lucide-file-text"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+            </div>
+            <h4>Source Citations</h4>
+            <p>Get answers with exact file and section references</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -174,19 +188,21 @@ with col_f3:
     st.markdown("""
         <div class='feature-card'>
             <div class='feature-icon-container' style='background-color: rgba(20, 184, 166, 0.15); color: #14B8A6;'>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-icon lucide-brain"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brain-icon lucide-brain"><path d="M12 18V5"/><path d="M15 13a4.17 4.17 0 0 1-3-4 4.17 4.17 0 0 1-3 4"/><path d="M17.598 6.5A3 3 0 1 0 12 5a3 3 0 1 0-5.598 1.5"/><path d="M17.997 5.125a4 4 0 0 1 2.526 5.77"/><path d="M18 18a4 4 0 0 0 2-7.464"/><path d="M19.967 17.483A4 4 0 1 1 12 18a4 4 0 1 1-7.967-.517"/><path d="M6 18a4 4 0 0 1-2-7.464"/><path d="M6.003 5.125a4 4 0 0 0-2.526 5.77"/></svg>
             </div>
-            <h4 style='margin: 5px 0px; color: #FFFFFF;'>AI-Powered</h4>
-            <p style='font-size: 0.8rem; color: #A7B1C2; margin-bottom: 0px;'>Advanced AI understands your course material.</p>
+            <h4>AI-Powered</h4>
+            <p>Advanced AI understands your course material</p>
         </div>
     """, unsafe_allow_html=True)
 
 with col_f4:
     st.markdown("""
         <div class='feature-card'>
-            <div class='feature-icon-container' style='background-color: rgba(245, 158, 11, 0.15); color: #F59E0B;'>⚡</div>
-            <h4 style='margin: 5px 0px; color: #FFFFFF;'>Fast & Accurate</h4>
-            <p style='font-size: 0.8rem; color: #A7B1C2; margin-bottom: 0px;'>Instant answers to save you hours of studying.</p>
+            <div class='feature-icon-container' style='background-color: rgba(245, 158, 11, 0.15); color: #F59E0B;'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <h4>Fast & Accurate</h4>
+            <p>Instant answers to save you hours of studying</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -211,9 +227,9 @@ embed_model, collection, llm = load_resources()
 
 # 7. Ask Question Section Card (Using native st.container with border)
 with st.container(border=True):
-    st.markdown("<div style='font-weight: 600; font-size: 1.1rem; color: #FFFFFF; margin-bottom: 15px;'>Ask a question about your AI Engineering coursework:</div>", unsafe_allow_html=True)
+    st.markdown("<div class='ask-label'>Ask a question about your AI Engineering coursework:</div>", unsafe_allow_html=True)
 
-    col_in, col_btn = st.columns([4, 1])
+    col_in, col_btn = st.columns([5.5, 1])
 
     with col_in:
         # Edge Case: Disable input field if no data loaded yet (db_empty) or busy
@@ -228,7 +244,7 @@ with st.container(border=True):
     with col_btn:
         # Edge Case: Disable button if no data loaded yet (db_empty) or busy
         ask_button = st.button(
-            "🚀 Ask Cohort IQ",
+            "Ask",
             disabled=db_empty or st.session_state.busy,
             use_container_width=True
         )
@@ -237,7 +253,12 @@ with st.container(border=True):
     if question and len(question.strip()) > 1000:
         st.warning("⚠️ Warning: Your question is very long (over 1000 characters). You can still submit, but matching performance or token limits may be affected.")
 
-    st.markdown("<div style='font-size: 0.8rem; color: #6E7893; margin-top: 10px;'>💡 Try: <i>\"What is prompt injection?\"</i> or <i>\"Compare Day 5 and Day 10\"</i></div>", unsafe_allow_html=True)
+    st.markdown("""
+        <div class='ask-helper'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-lightbulb" style="vertical-align: -2px; margin-right: 4px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1 .3 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+            Try:&nbsp; <span class="helper-query">"What is prompt injection?"</span> or <span class="helper-query">"How does RAG work?"</span>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Define holders for answers and sources
 answer_out = ""
@@ -254,12 +275,26 @@ if ask_button or (question and st.session_state.last_query != question):
         st.info("ℹ️ Please enter a question.")
     elif db_empty:
         st.warning("⚠️ No documents indexed yet. Please add markdown files into the `data/` folder.")
+    elif is_injection_attempt(question.strip()):
+        st.error("Couldn't process that question — try rephrasing it.")
+    elif contains_pii(question.strip()):
+        pii_types = contains_pii(question.strip())
+        readable_pii = [PII_MAP.get(t, t) for t in pii_types]
+        st.warning(f"⚠️ Your question appears to contain {', '.join(readable_pii)}. Please remove sensitive information before asking.")
     else:
         st.session_state.busy = True
         try:
-            with st.spinner("🧠 Synthesizing coursework response..."):
-                answer_out, sources_out = query_pipeline(question.strip(), collection, embed_model, llm)
+            q_clean = question.strip()
+            # Bypasses Chroma/Gemini pipeline if question has already been asked in this session
+            if q_clean in st.session_state.response_cache:
+                answer_out, sources_out = st.session_state.response_cache[q_clean]
                 has_run = True
+            else:
+                with st.spinner("Searching course material..."):
+                    answer_out, sources_out = query_pipeline(q_clean, collection, embed_model, llm)
+                    # Cache the response
+                    st.session_state.response_cache[q_clean] = (answer_out, sources_out)
+                    has_run = True
         except Exception as e:
             error_occurred = True
             err_str = str(e).lower()
@@ -286,9 +321,16 @@ with st.container(border=True):
             st.markdown("<div class='answer-text' style='color: #EF4444;'>An error occurred. Please view details above.</div>", unsafe_allow_html=True)
         else:
             st.markdown("""
-                <div style='color: #6E7893;'>
-                    <p>Your answer will appear here with detailed explanations and source citations.</p>
-                    <p>Cohort IQ will analyze your coursework and provide accurate, referenced answers.</p>
+                <div style='color: #8D99AE; font-size: 0.95rem; line-height: 1.5;'>
+                    <p style='margin-top: 0;'>💡 <b>Ready to query your coursework material.</b> Ask questions about lectures, concepts, or code implementations.</p>
+                    <div style='background-color: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 12px; padding: 14px; margin-top: 14px;'>
+                        <span style='font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6E7893; display: block; margin-bottom: 8px;'>Suggested topics to ask:</span>
+                        <ul style='margin: 0; padding-left: 20px; color: #A7B1C2; font-size: 0.85rem;'>
+                            <li><b>Architectures:</b> <i>"How does RAG compare to fine-tuning?"</i></li>
+                            <li><b>Concepts:</b> <i>"What are prompt injection attacks and how do we prevent them?"</i></li>
+                            <li><b>Code:</b> <i>"Show me a Python implementation of an agent with ChromaDB."</i></li>
+                        </ul>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
 

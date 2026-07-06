@@ -19,3 +19,4 @@ Interns in the Techgebra AI Engineering Internship cohort who want a faster, mor
 - No user accounts, authentication, or saved conversation history across sessions.
 - No editing or modifying of the lesson content through the application.
 - The app is not optimized or guaranteed for documents outside the specific scope of the AI Engineering course material.
+- **PII Checking on Document Upload:** Not applicable. The application retrieves coursework data directly from pre-defined local directories and does not accept user document uploads. PII guardrails are instead enforced directly on search input queries.
